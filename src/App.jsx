@@ -15,7 +15,7 @@ import {
   UserRound,
   Zap,
 } from 'lucide-react'
-import { getTodayWorkoutId, routines, trainingRules, users, weekdays } from './data/routines'
+import { alfonsoTrainingRules, getTodayWorkoutId, routines, trainingRules, users, weekdays } from './data/routines'
 
 const statIcons = {
   duration: Clock3,
@@ -334,6 +334,8 @@ function WeeklyView({ selectedUser, selectedDay, setSelectedDay }) {
 }
 
 function Rules({ selectedUser }) {
+  const visibleRules = selectedUser === 'alfonso' ? alfonsoTrainingRules : trainingRules
+
   return (
     <section className="premium-border rounded-lg p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -345,7 +347,7 @@ function Rules({ selectedUser }) {
       </div>
 
       <div className="grid gap-3">
-        {trainingRules.map((rule) => {
+        {visibleRules.map((rule) => {
           const isKneeRule = rule.title.includes('Lily')
           const muted = isKneeRule && selectedUser !== 'lily'
           return (
