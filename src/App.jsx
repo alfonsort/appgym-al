@@ -15,7 +15,7 @@ import {
   UserRound,
   Zap,
 } from 'lucide-react'
-import { alfonsoTrainingRules, getTodayWorkoutId, routines, trainingRules, users, weekdays } from './data/routines'
+import { getTodayWorkoutId, routines, trainingRules, users, weekdays } from './data/routines'
 
 const statIcons = {
   duration: Clock3,
@@ -52,16 +52,18 @@ function App() {
           weeklyStats={weeklyStats}
         />
 
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <section className={`grid gap-5 ${selectedUser === 'lily' ? 'lg:grid-cols-[minmax(0,1fr)_360px]' : ''}`}>
           <div className="flex min-w-0 flex-col gap-5">
             <DaySelector selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
             <WorkoutCard workout={workout} day={activeDay} profile={profile} selectedUser={selectedUser} />
           </div>
 
-          <aside className="flex flex-col gap-5">
-            <WeeklyView selectedUser={selectedUser} selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
-            <Rules selectedUser={selectedUser} />
-          </aside>
+          {selectedUser === 'lily' && (
+            <aside className="flex flex-col gap-5">
+              <WeeklyView selectedUser={selectedUser} selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
+              <Rules />
+            </aside>
+          )}
         </section>
       </div>
     </main>
@@ -333,9 +335,7 @@ function WeeklyView({ selectedUser, selectedDay, setSelectedDay }) {
   )
 }
 
-function Rules({ selectedUser }) {
-  const visibleRules = selectedUser === 'alfonso' ? alfonsoTrainingRules : trainingRules
-
+function Rules() {
   return (
     <section className="premium-border rounded-lg p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -347,9 +347,8 @@ function Rules({ selectedUser }) {
       </div>
 
       <div className="grid gap-3">
-        {visibleRules.map((rule) => {
+        {trainingRules.map((rule) => {
           const isKneeRule = rule.title.includes('Lily')
-          const muted = isKneeRule && selectedUser !== 'lily'
           return (
             <div
               key={rule.title}
@@ -357,7 +356,7 @@ function Rules({ selectedUser }) {
                 isKneeRule
                   ? 'border-gold/25 bg-gold/10'
                   : 'border-white/10 bg-white/[0.035]'
-              } ${muted ? 'opacity-70' : ''}`}
+              }`}
             >
               <p className={`text-sm font-black ${isKneeRule ? 'text-gold' : 'text-white'}`}>{rule.title}</p>
               <p className="mt-1 text-xs leading-5 text-slate-400">{rule.text}</p>
