@@ -15,7 +15,7 @@ import {
   UserRound,
   Zap,
 } from 'lucide-react'
-import { getTodayWorkoutId, routines, trainingRules, users, weekdays } from './data/routines'
+import { getTodayWorkoutId, lilyRecommendations, routines, users, weekdays } from './data/routines'
 
 const statIcons = {
   duration: Clock3,
@@ -52,18 +52,11 @@ function App() {
           weeklyStats={weeklyStats}
         />
 
-        <section className={`grid gap-5 ${selectedUser === 'lily' ? 'lg:grid-cols-[minmax(0,1fr)_360px]' : ''}`}>
+        <section className="grid gap-5">
           <div className="flex min-w-0 flex-col gap-5">
             <DaySelector selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
             <WorkoutCard workout={workout} day={activeDay} profile={profile} selectedUser={selectedUser} />
           </div>
-
-          {selectedUser === 'lily' && (
-            <aside className="flex flex-col gap-5">
-              <WeeklyView selectedUser={selectedUser} selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
-              <Rules />
-            </aside>
-          )}
         </section>
       </div>
     </main>
@@ -202,9 +195,16 @@ function WorkoutCard({ workout, day, profile, selectedUser }) {
         <div className="mx-5 mt-5 rounded-lg border border-gold/25 bg-gold/10 p-4 text-sm leading-6 text-gold sm:mx-6">
           <div className="mb-1 flex items-center gap-2 font-extrabold text-gold">
             <ShieldCheck size={18} />
-            Rodilla primero
+            Recomendaciones para Lily
           </div>
-          Cualquier ejercicio con molestia se cambia por una opcion sin dolor. Mantener rango corto, control y cero impacto.
+          <ul className="mt-2 grid gap-2 text-slate-200">
+            {lilyRecommendations.map((recommendation) => (
+              <li key={recommendation} className="flex gap-2">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                <span>{recommendation}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -289,82 +289,6 @@ function MiniStat({ icon: Icon, label, value }) {
       </div>
       <p className="text-sm font-extrabold text-white">{value}</p>
     </div>
-  )
-}
-
-function WeeklyView({ selectedUser, selectedDay, setSelectedDay }) {
-  return (
-    <section className="premium-border rounded-lg p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-volt">Vista semanal</p>
-          <h2 className="mt-1 text-xl font-black text-white">Plan de la semana</h2>
-        </div>
-        <CalendarDays className="text-volt" size={24} />
-      </div>
-
-      <div className="grid gap-2">
-        {weekdays.map((day) => {
-          const item = routines[selectedUser][day.id]
-          const isActive = selectedDay === day.id
-          return (
-            <button
-              key={day.id}
-              type="button"
-              onClick={() => setSelectedDay(day.id)}
-              className={`rounded-lg border p-3 text-left transition ${
-                isActive
-                  ? 'border-volt/50 bg-volt/[0.12]'
-                  : 'border-white/10 bg-white/[0.035] hover:bg-white/[0.06]'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-black text-white">{day.full}</p>
-                  <p className="truncate text-xs text-slate-400">{item.title}</p>
-                </div>
-                <span className="shrink-0 rounded-lg bg-white/[0.07] px-2.5 py-1 text-[11px] font-bold text-slate-300">
-                  {item.duration}
-                </span>
-              </div>
-            </button>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-function Rules() {
-  return (
-    <section className="premium-border rounded-lg p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-gold">Reglas del entrenamiento</p>
-          <h2 className="mt-1 text-xl font-black text-white">Sistema simple</h2>
-        </div>
-        <ShieldCheck className="text-gold" size={24} />
-      </div>
-
-      <div className="grid gap-3">
-        {trainingRules.map((rule) => {
-          const isKneeRule = rule.title.includes('Lily')
-          return (
-            <div
-              key={rule.title}
-              className={`rounded-lg border p-3 ${
-                isKneeRule
-                  ? 'border-gold/25 bg-gold/10'
-                  : 'border-white/10 bg-white/[0.035]'
-              }`}
-            >
-              <p className={`text-sm font-black ${isKneeRule ? 'text-gold' : 'text-white'}`}>{rule.title}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-400">{rule.text}</p>
-            </div>
-          )
-        })}
-      </div>
-    </section>
   )
 }
 
