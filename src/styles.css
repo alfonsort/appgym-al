@@ -40,3 +40,24 @@ button {
 .text-balance {
   text-wrap: balance;
 }
+
+button, input, select, textarea { touch-action: manipulation; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 2px solid #47f59b;
+  outline-offset: 3px;
+}
+.small-button {
+  min-height: 44px;
+  border: 1px solid rgba(71, 245, 155, .4);
+  background: rgba(71, 245, 155, .1);
+  border-radius: .5rem;
+  padding: .6rem .9rem;
+  font-size: .875rem;
+  font-weight: 700;
+}
+.small-button:disabled { opacity: .5; cursor: not-allowed; }
+.field-label { display: grid; gap: .5rem; font-size: .875rem; color: #cbd5e1; min-width: 0; }
+.field-label input, .field-label select, .field-label textarea {
+  min-width: 0; width: 100%; padding: .7rem; border: 1px solid #475569;
+  border-radius: .5rem; background: #10151f; color: white; font: inherit;
+}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowUpRight,
@@ -17,6 +17,10 @@ import {
 } from 'lucide-react'
 import { getTodayWorkoutId, lilyRecommendations, routines, users, weekdays } from './data/routines'
 
+import { runningForWeek } from './data/alfonso'
+import { STORAGE_KEY, defaultCycle, normalizeCycle, cycleStatus } from './data/cycle'
+import CyclePanel, { HyroxEditor } from './CyclePanel'
+
 const statIcons = {
   duration: Clock3,
   intensity: Zap,
@@ -27,8 +31,33 @@ function App() {
   const [selectedUser, setSelectedUser] = useState('alfonso')
   const [selectedDay, setSelectedDay] = useState(getTodayWorkoutId)
 
+  const [storageError, setStorageError] = useState(false)
+  const [cycle, setCycle] = useState(() => {
+    try { return normalizeCycle(JSON.parse(localStorage.getItem(STORAGE_KEY))) }
+    catch { return defaultCycle() }
+  })
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60000)
+    return () => clearInterval(timer)
+  }, [])
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(cycle)); setStorageError(false) }
+    catch { setStorageError(true) }
+  }, [cycle])
+  const status = cycleStatus(cycle, now)
+  const week = Math.min(status.week, cycle.weeks)
+  const isAlfonso = selectedUser === 'alfonso'
   const profile = users[selectedUser]
-  const workout = routines[selectedUser][selectedDay]
+  let workout = routines[selectedUser][selectedDay]
+  if (isAlfonso && selectedDay === 'martes') workout = runningForWeek(week, cycle.initialWeeks)
+  if (isAlfonso && selectedDay === 'jueves' && cycle.hyrox[week]) workout = {
+    ...workout, title: `HYROX — Semana ${week}`, focus: 'Sesión ajustada para este jueves.',
+    duration: 'Según sesión', intensity: 'Según sesión', exercises: [],
+    finisher: { type: 'Sesión de la semana', title: 'Tu jueves', details: cycle.hyrox[week] },
+  }
+  const completedCount = weekdays.filter(day => cycle.completed[`${week}-${day.id}`]).length
+  const completionKey = `${week}-${selectedDay}`
   const activeDay = weekdays.find((day) => day.id === selectedDay)
 
   const weeklyStats = useMemo(() => {
@@ -52,9 +81,18 @@ function App() {
           weeklyStats={weeklyStats}
         />
 
+        {isAlfonso && <CyclePanel cycle={cycle} status={status} save={setCycle} storageError={storageError} />}
         <section className="grid gap-5">
           <div className="flex min-w-0 flex-col gap-5">
             <DaySelector selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
+            {isAlfonso && <>
+              <p className="text-sm leading-6 text-slate-300">{[0, 6].includes(now.getDay()) ? 'Fin de semana: sin rutina obligatoria. Puedes consultar los días.' : `Hoy: ${weekdays.find(day => day.id === getTodayWorkoutId(now)).full}.`} · Pesas: lun, mié y vie · Running: mar · HYROX: jue</p>
+              <p className="text-sm text-slate-300">Semana {week}: {completedCount}/5 sesiones completadas{status.ended ? ' · Última semana del bloque' : ''}</p>
+              {selectedDay === 'jueves' && <HyroxEditor key={`${cycle.start}-${week}`} week={week} value={cycle.hyrox[week]} onSave={value => setCycle(previous => ({ ...previous, hyrox: { ...previous.hyrox, [week]: value } }))} />}
+              <button className="small-button w-fit" disabled={status.pending || status.ended} aria-pressed={!!cycle.completed[completionKey]} onClick={() => setCycle(previous => ({ ...previous, completed: { ...previous.completed, [completionKey]: !previous.completed[completionKey] } }))}>
+                {cycle.completed[completionKey] ? '✓ Sesión completada · desmarcar' : `Marcar ${activeDay.full.toLowerCase()} como completado`}
+              </button>
+            </>}
             <WorkoutCard workout={workout} day={activeDay} profile={profile} selectedUser={selectedUser} />
           </div>
         </section>
@@ -74,7 +112,7 @@ function Hero({ profile, selectedUser, setSelectedUser, weeklyStats }) {
             <Sparkles size={15} className="text-volt" />
             AppGym A&L
           </div>
-          <h1 className="text-balance text-4xl font-black leading-[0.98] text-white sm:text-5xl lg:text-6xl">
+          <h1 className="text-balance text-2xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">
             Entrena fuerte. Ajusta inteligente.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
@@ -82,9 +120,9 @@ function Hero({ profile, selectedUser, setSelectedUser, weeklyStats }) {
           </p>
 
           <div className="mt-6 grid grid-cols-3 gap-3">
-            <HeroMetric icon={CalendarDays} label="Dias" value={weeklyStats.days} />
-            <HeroMetric icon={Dumbbell} label="Ejercicios" value={weeklyStats.exercises} />
-            <HeroMetric icon={Flame} label="Finishers" value={weeklyStats.finishers} />
+            <HeroMetric icon={CalendarDays} label="Días" value={weeklyStats.days} />
+            <HeroMetric icon={Dumbbell} label={selectedUser === 'alfonso' ? "Cardio" : "Ejercicios"} value={selectedUser === 'alfonso' ? 2 : weeklyStats.exercises} />
+            <HeroMetric icon={Flame} label={selectedUser === 'alfonso' ? "Pesas" : "Finishers"} value={selectedUser === 'alfonso' ? 3 : weeklyStats.finishers} />
           </div>
         </div>
 
@@ -107,6 +145,7 @@ function Hero({ profile, selectedUser, setSelectedUser, weeklyStats }) {
                   key={user.id}
                   type="button"
                   onClick={() => setSelectedUser(user.id)}
+                  aria-pressed={isActive}
                   className={`rounded-lg border p-4 text-left transition ${
                     isActive
                       ? 'border-volt/60 bg-volt/15 text-white shadow-[0_12px_40px_rgba(71,245,155,0.12)]'
@@ -154,8 +193,8 @@ function DaySelector({ selectedDay, setSelectedDay }) {
               aria-pressed={isActive}
             >
               <span className="block text-sm font-black">{day.label}</span>
-              <span className={`mt-1 block text-[10px] font-bold uppercase ${isActive ? 'text-coal/70' : 'text-slate-500'}`}>
-                {day.full}
+              <span className={`mt-1 block text-[10px] font-bold uppercase ${isActive ? 'text-coal/70' : 'text-slate-400'}`}>
+                {new Date().getDay() > 0 && new Date().getDay() < 6 && day.id === getTodayWorkoutId() ? 'Hoy' : ''}
               </span>
             </button>
           )
@@ -185,9 +224,9 @@ function WorkoutCard({ workout, day, profile, selectedUser }) {
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
-          <WorkoutStat id="duration" label="Duracion" value={workout.duration} />
+          <WorkoutStat id="duration" label="Duración" value={workout.duration} />
           <WorkoutStat id="intensity" label="Intensidad" value={workout.intensity} />
-          <WorkoutStat id="exercises" label="Ejercicios" value={workout.exercises.length} />
+          <WorkoutStat id="exercises" label={workout.exercises.length ? "Ejercicios" : "Formato"} value={workout.exercises.length || "Personalizado"} />
         </div>
       </div>
 
@@ -222,7 +261,7 @@ function WorkoutCard({ workout, day, profile, selectedUser }) {
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-electric">{workout.finisher.type}</p>
             <h3 className="mt-1 text-xl font-black text-white">{workout.finisher.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-300">{workout.finisher.details}</p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-300">{workout.finisher.details}</p>
           </div>
         </div>
       </div>
@@ -282,10 +321,10 @@ function ExerciseCard({ exercise, index }) {
 
 function MiniStat({ icon: Icon, label, value }) {
   return (
-    <div className="min-w-0 rounded-lg bg-white/[0.045] p-3">
-      <div className="mb-1 flex items-center gap-1.5 text-slate-500">
-        <Icon size={14} />
-        <span className="truncate text-[10px] font-black uppercase tracking-[0.12em]">{label}</span>
+    <div className="min-w-0 rounded-lg bg-white/[0.045] p-2 sm:p-3">
+      <div className="mb-1 flex items-center gap-1.5 text-slate-400">
+        <Icon size={14} className="hidden shrink-0 sm:block" />
+        <span className="text-[9px] font-black uppercase sm:text-[10px] sm:tracking-[0.12em]">{label}</span>
       </div>
       <p className="text-sm font-extrabold text-white">{value}</p>
     </div>
